@@ -9,7 +9,7 @@ using PanCardView.Utility;
 
 namespace PanCardView.Processors
 {
-    public class BaseCardBackViewProcessor : ICardProcessor
+    public class BaseCardBackViewProcessor : ICardBackViewProcessor
     {
         public double InitialScale { get; set; } = 0.8;
 
@@ -30,12 +30,24 @@ namespace PanCardView.Processors
             var view = views.FirstOrDefault();
             if (view != null)
             {
+                view.BatchBegin();
                 view.TranslationX = 0;
                 view.Rotation = 0;
                 view.TranslationY = 0;
                 view.Opacity = 1;
                 view.IsVisible = false;
                 view.Scale = InitialScale;
+                view.BatchCommit();
+            }
+        }
+
+        public virtual void HandleCleanView(IEnumerable<View> views, CardsView cardsView)
+        {
+            var view = views.FirstOrDefault();
+            if (view != null)
+            {
+                view.IsVisible = false;
+                view.TranslationX = cardsView.Width;
             }
         }
 

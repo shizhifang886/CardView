@@ -1,10 +1,16 @@
-﻿using Xamarin.Forms;
+﻿using System.ComponentModel;
+using Xamarin.Forms;
 
 namespace PanCardView.Controls
 {
     public class ParentScrollView : ScrollView, IOrdinateHandlerParentView
     {
         private double _prevY;
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static void Preserve()
+        {
+        }
 
         public virtual void HandleOrdinateValue(double y, bool isFirst)
         {

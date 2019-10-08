@@ -17,6 +17,7 @@ using System.Threading;
 using System.Runtime.CompilerServices;
 using PanCardView.EventArgs;
 using PanCardView.Delegates;
+using System.ComponentModel;
 
 namespace PanCardView
 {
@@ -38,12 +39,12 @@ namespace PanCardView
         public static readonly BindableProperty SelectedItemProperty = BindableProperty.Create(nameof(SelectedItem), typeof(object), typeof(CardsView), null, BindingMode.TwoWay, propertyChanged: (bindable, oldValue, newValue) =>
         {
             var view = bindable.AsCardsView();
-            view.SelectedIndex = view.ItemsSource?.IndexOf(newValue) ?? -1;
+            view.SelectedIndex = view.ItemsSource?.FindIndex(newValue) ?? -1;
         });
 
-        public static readonly BindableProperty ItemsSourceProperty = BindableProperty.Create(nameof(ItemsSource), typeof(IList), typeof(CardsView), null, propertyChanged: (bindable, oldValue, newValue) =>
+        public static readonly BindableProperty ItemsSourceProperty = BindableProperty.Create(nameof(ItemsSource), typeof(IEnumerable), typeof(CardsView), null, propertyChanged: (bindable, oldValue, newValue) =>
         {
-            bindable.AsCardsView().SetItemsCount();
+            bindable.AsCardsView().SetItemsSource(oldValue as IEnumerable);
         });
 
         public static readonly BindableProperty ItemTemplateProperty = BindableProperty.Create(nameof(ItemTemplate), typeof(DataTemplate), typeof(CardsView), propertyChanged: (bindable, oldValue, newValue) =>
@@ -51,7 +52,7 @@ namespace PanCardView
             bindable.AsCardsView().SetCurrentView();
         });
 
-        public static readonly BindableProperty BackViewsDepthProperty = BindableProperty.Create(nameof(BackViewsDepth), typeof(int), typeof(CardsView), 1, propertyChanged: (bindable, oldValue, newValue) =>
+        public static readonly BindableProperty BackViewsDepthProperty = BindableProperty.Create(nameof(BackViewsDepth), typeof(int), typeof(CardsView), defaultValueCreator: b => b.AsCardsView().DefaultBackViewsDepth, propertyChanged: (bindable, oldValue, newValue) =>
         {
             bindable.AsCardsView().SetCurrentView();
         });
@@ -81,39 +82,49 @@ namespace PanCardView
             bindable.AsCardsView().SetPanGesture(!(bool)newValue);
         });
 
-        public static readonly BindableProperty ItemsCountProperty = BindableProperty.Create(nameof(ItemsCount), typeof(int), typeof(CardsView), -1);
+        public static readonly BindableProperty CurrentDiffProperty = BindableProperty.Create(nameof(CurrentDiff), typeof(double), typeof(CardsView), 0.0, BindingMode.OneWayToSource);
+
+        public static readonly BindableProperty IsNextItemPanInteractionEnabledProperty = BindableProperty.Create(nameof(IsNextItemPanInteractionEnabled), typeof(bool), typeof(CardsView), true);
+
+        public static readonly BindableProperty IsPrevItemPanInteractionEnabledProperty = BindableProperty.Create(nameof(IsPrevItemPanInteractionEnabled), typeof(bool), typeof(CardsView), true);
+
+        public static readonly BindableProperty ItemsCountProperty = BindableProperty.Create(nameof(ItemsCount), typeof(int), typeof(CardsView), -1, BindingMode.OneWayToSource);
 
         public static readonly BindableProperty IsUserInteractionEnabledProperty = BindableProperty.Create(nameof(IsUserInteractionEnabled), typeof(bool), typeof(CardsView), true);
 
         public static readonly BindableProperty MoveDistanceProperty = BindableProperty.Create(nameof(MoveDistance), typeof(double), typeof(CardsView), -1.0);
 
-        public static readonly BindableProperty MoveWidthPercentageProperty = BindableProperty.Create(nameof(MoveWidthPercentage), typeof(double), typeof(CardsView), .325);
+        public static readonly BindableProperty MoveWidthPercentageProperty = BindableProperty.Create(nameof(MoveWidthPercentage), typeof(double), typeof(CardsView), defaultValueCreator: b => b.AsCardsView().DefaultMoveWidthPercentage);
 
         public static readonly BindableProperty IsOnlyForwardDirectionProperty = BindableProperty.Create(nameof(IsOnlyForwardDirection), typeof(bool), typeof(CardsView), false);
 
-        public static readonly BindableProperty IsViewCacheEnabledProperty = BindableProperty.Create(nameof(IsViewCacheEnabled), typeof(bool), typeof(CardsView), true);
+        public static readonly BindableProperty IsViewReusingEnabledProperty = BindableProperty.Create(nameof(IsViewReusingEnabled), typeof(bool), typeof(CardsView), true);
 
         public static readonly BindableProperty UserInteractionDelayProperty = BindableProperty.Create(nameof(UserInteractionDelay), typeof(int), typeof(CardsView), 200);
 
         public static readonly BindableProperty IsUserInteractionInCourseProperty = BindableProperty.Create(nameof(IsUserInteractionInCourse), typeof(bool), typeof(CardsView), true);
 
-        public static readonly BindableProperty IsCyclicalProperty = BindableProperty.Create(nameof(IsCyclical), typeof(bool), typeof(CardsView), false);
+        public static readonly BindableProperty IsCyclicalProperty = BindableProperty.Create(nameof(IsCyclical), typeof(bool), typeof(CardsView), defaultValueCreator: b => b.AsCardsView().DefaultIsCyclical);
 
-        public static readonly BindableProperty IsAutoNavigatingAimationEnabledProperty = BindableProperty.Create(nameof(IsAutoNavigatingAimationEnabled), typeof(bool), typeof(CardsView), true);
+        public static readonly BindableProperty IsAutoNavigatingAnimationEnabledProperty = BindableProperty.Create(nameof(IsAutoNavigatingAnimationEnabled), typeof(bool), typeof(CardsView), true);
 
         public static readonly BindableProperty IsPanSwipeEnabledProperty = BindableProperty.Create(nameof(IsPanSwipeEnabled), typeof(bool), typeof(CardsView), true);
 
         public static readonly BindableProperty AreAnimationsEnabledProperty = BindableProperty.Create(nameof(AreAnimationsEnabled), typeof(bool), typeof(CardsView), true);
 
-        public static readonly BindableProperty MaxChildrenCountProperty = BindableProperty.Create(nameof(MaxChildrenCount), typeof(int), typeof(CardsView), 12);
+        public static readonly BindableProperty MaxChildrenCountProperty = BindableProperty.Create(nameof(MaxChildrenCount), typeof(int), typeof(CardsView), defaultValueCreator: b => b.AsCardsView().DefaultMaxChildrenCount);
 
-        public static readonly BindableProperty DesiredMaxChildrenCountProperty = BindableProperty.Create(nameof(DesiredMaxChildrenCount), typeof(int), typeof(CardsView), 6);
+        public static readonly BindableProperty DesiredMaxChildrenCountProperty = BindableProperty.Create(nameof(DesiredMaxChildrenCount), typeof(int), typeof(CardsView), defaultValueCreator: b => b.AsCardsView().DefaultDesiredMaxChildrenCount);
 
         public static readonly BindableProperty SwipeThresholdDistanceProperty = BindableProperty.Create(nameof(SwipeThresholdDistance), typeof(double), typeof(CardsView), 17.0);
 
-        public static readonly BindableProperty MoveThresholdDistanceProperty = BindableProperty.Create(nameof(MoveThresholdDistance), typeof(double), typeof(CardsView), 3.0);
+        public static readonly BindableProperty MoveThresholdDistanceProperty = BindableProperty.Create(nameof(MoveThresholdDistance), typeof(double), typeof(CardsView), 7.0);
 
         public static readonly BindableProperty VerticalSwipeThresholdDistanceProperty = BindableProperty.Create(nameof(VerticalSwipeThresholdDistance), typeof(double), typeof(CardsView), 30.0);
+
+        public static readonly BindableProperty ShouldThrottlePanInteractionProperty = BindableProperty.Create(nameof(ShouldThrottlePanInteraction), typeof(bool), typeof(CardsView), false);
+
+        public static readonly BindableProperty IsVerticalSwipeEnabledProperty = BindableProperty.Create(nameof(IsVerticalSwipeEnabled), typeof(bool), typeof(CardsView), true);
 
         public static readonly BindableProperty SwipeThresholdTimeProperty = BindableProperty.Create(nameof(SwipeThresholdTime), typeof(TimeSpan), typeof(CardsView), TimeSpan.FromMilliseconds(Device.RuntimePlatform == Device.Android ? 100 : 60));
 
@@ -123,22 +134,37 @@ namespace PanCardView
 
         public static readonly BindableProperty ItemAppearingCommandProperty = BindableProperty.Create(nameof(ItemAppearingCommand), typeof(ICommand), typeof(CardsView), null);
 
+        public static readonly BindableProperty ItemAppearedCommandProperty = BindableProperty.Create(nameof(ItemAppearedCommand), typeof(ICommand), typeof(CardsView), null);
+
         public static readonly BindableProperty ItemSwipedCommandProperty = BindableProperty.Create(nameof(ItemSwipedCommand), typeof(ICommand), typeof(CardsView), null);
+
+        internal static readonly BindableProperty ShouldAutoNavigateToNextProperty = BindableProperty.Create(nameof(ShouldAutoNavigateToNext), typeof(bool?), typeof(CardsView), null);
+
+        internal static readonly BindableProperty ProcessorDiffProperty = BindableProperty.Create(nameof(ProcessorDiff), typeof(double), typeof(CardsView), 0.0, BindingMode.OneWayToSource);
 
         public event CardsViewUserInteractedHandler UserInteracted;
         public event CardsViewItemDisappearingHandler ItemDisappearing;
         public event CardsViewItemAppearingHandler ItemAppearing;
+        public event CardsViewItemAppearedHandler ItemAppeared;
+        /// <summary>
+        /// Raised when user swiped a view (swipe gesture). If you want to detect card switching, use ItemAppeared / ItemAppearing
+        /// </summary>
         public event CardsViewItemSwipedHandler ItemSwiped;
+        public event NotifyCollectionChangedEventHandler ViewsInUseCollectionChanged
+        {
+            add => _viewsInUseSet.CollectionChanged += value;
+            remove => _viewsInUseSet.CollectionChanged -= value;
+        }
 
         private readonly object _childLocker = new object();
         private readonly object _viewsInUseLocker = new object();
         private readonly object _setCurrentViewLocker = new object();
         private readonly object _sizeChangedLocker = new object();
 
-        private readonly Dictionary<object, List<View>> _viewsPool = new Dictionary<object, List<View>>();
+        private readonly Dictionary<object, HashSet<View>> _viewsPool = new Dictionary<object, HashSet<View>>();
         private readonly Dictionary<Guid, IEnumerable<View>> _viewsGestureCounter = new Dictionary<Guid, IEnumerable<View>>();
         private readonly List<TimeDiffItem> _timeDiffItems = new List<TimeDiffItem>();
-        private readonly ViewsInUseSet _viewsInUse = new ViewsInUseSet();
+        private readonly ViewsInUseSet _viewsInUseSet = new ViewsInUseSet();
         private readonly InteractionQueue _interactions = new InteractionQueue();
         private readonly PanGestureRecognizer _panGesture = new PanGestureRecognizer();
         private readonly ContextAssignedBehavior _contextAssignedBehavior = new ContextAssignedBehavior();
@@ -149,25 +175,23 @@ namespace PanCardView
         private IEnumerable<View> _currentInactiveBackViews = Enumerable.Empty<View>();
 
         private AnimationDirection _currentBackAnimationDirection;
-        private INotifyCollectionChanged _currentObservableCollection;
 
         private int _viewsChildrenCount;
         private int _inCoursePanDelay;
-        private double _parentWidth;
-        private double _parentHeight;
         private bool _isPanEndRequested = true;
         private bool _shouldSkipTouch;
-        private bool _isViewsInited;
+        private bool _isViewInited;
         private bool _hasRenderer;
         private bool? _shouldScrollParent;
+        private Size _parentSize;
         private DateTime _lastPanTime;
-        private CancellationTokenSource _slideshowTokenSource;
+        private CancellationTokenSource _slideShowTokenSource;
 
         public CardsView() : this(new BaseCardFrontViewProcessor(), new BaseCardBackViewProcessor())
         {
         }
 
-        public CardsView(ICardProcessor frontViewProcessor, ICardProcessor backViewProcessor)
+        public CardsView(ICardProcessor frontViewProcessor, ICardBackViewProcessor backViewProcessor)
         {
             FrontViewProcessor = frontViewProcessor;
             BackViewProcessor = backViewProcessor;
@@ -178,39 +202,49 @@ namespace PanCardView
 
         private bool ShouldSetIndexAfterPan { get; set; }
 
-        private IEnumerable<View> PrevViews
-        {
-            get => _prevViews;
-            set => _prevViews = value ?? Enumerable.Empty<View>();
-        }
+        protected virtual int DefaultBackViewsDepth => 1;
 
-        private IEnumerable<View> NextViews
-        {
-            get => _nextViews;
-            set => _nextViews = value ?? Enumerable.Empty<View>();
-        }
+        protected virtual double DefaultMoveWidthPercentage => 0.325;
 
-        private IEnumerable<View> CurrentBackViews
-        {
-            get => _currentBackViews;
-            set => _currentBackViews = value ?? Enumerable.Empty<View>();
-        }
+        protected virtual bool DefaultIsCyclical => false;
 
-        private IEnumerable<View> CurrentInactiveBackViews
-        {
-            get => _currentInactiveBackViews;
-            set => _currentInactiveBackViews = value ?? Enumerable.Empty<View>();
-        }
+        protected virtual int DefaultMaxChildrenCount => 12;
+
+        protected virtual int DefaultDesiredMaxChildrenCount => 7;
 
         public View CurrentView { get; private set; }
 
-        public double CurrentDiff { get; private set; }
+        public IReadOnlyList<View> ViewsInUseCollection => _viewsInUseSet.Views;
+
+        public IEnumerable<View> PrevViews
+        {
+            get => _prevViews;
+            private set => _prevViews = value ?? Enumerable.Empty<View>();
+        }
+
+        public IEnumerable<View> NextViews
+        {
+            get => _nextViews;
+            private set => _nextViews = value ?? Enumerable.Empty<View>();
+        }
+
+        public IEnumerable<View> CurrentBackViews
+        {
+            get => _currentBackViews;
+            private set => _currentBackViews = value ?? Enumerable.Empty<View>();
+        }
+
+        public IEnumerable<View> CurrentInactiveBackViews
+        {
+            get => _currentInactiveBackViews;
+            private set => _currentInactiveBackViews = value ?? Enumerable.Empty<View>();
+        }
 
         public int OldIndex { get; private set; } = -1;
 
         public ICardProcessor FrontViewProcessor { get; }
 
-        public ICardProcessor BackViewProcessor { get; }
+        public ICardBackViewProcessor BackViewProcessor { get; }
 
         public int SelectedIndex
         {
@@ -224,9 +258,9 @@ namespace PanCardView
             set => SetValue(SelectedItemProperty, value);
         }
 
-        public IList ItemsSource
+        public IEnumerable ItemsSource
         {
-            get => GetValue(ItemsSourceProperty) as IList;
+            get => GetValue(ItemsSourceProperty) as IEnumerable;
             set => SetValue(ItemsSourceProperty, value);
         }
 
@@ -266,14 +300,28 @@ namespace PanCardView
             set => SetValue(IsAutoInteractionRunningProperty, value);
         }
 
-        /// <summary>
-        /// Only for iOS and Android
-        /// </summary>
-        /// <value>Pan interaction is enabled</value>
         public bool IsPanInteractionEnabled
         {
             get => (bool)GetValue(IsPanInteractionEnabledProperty);
             set => SetValue(IsPanInteractionEnabledProperty, value);
+        }
+
+        public double CurrentDiff
+        {
+            get => (double)GetValue(CurrentDiffProperty);
+            set => SetValue(CurrentDiffProperty, value);
+        }
+
+        public bool IsNextItemPanInteractionEnabled
+        {
+            get => (bool)GetValue(IsNextItemPanInteractionEnabledProperty);
+            set => SetValue(IsNextItemPanInteractionEnabledProperty, value);
+        }
+
+        public bool IsPrevItemPanInteractionEnabled
+        {
+            get => (bool)GetValue(IsPrevItemPanInteractionEnabledProperty);
+            set => SetValue(IsPrevItemPanInteractionEnabledProperty, value);
         }
 
         public int ItemsCount
@@ -312,10 +360,10 @@ namespace PanCardView
             set => SetValue(IsOnlyForwardDirectionProperty, value);
         }
 
-        public bool IsViewCacheEnabled
+        public bool IsViewReusingEnabled
         {
-            get => (bool)GetValue(IsViewCacheEnabledProperty);
-            set => SetValue(IsViewCacheEnabledProperty, value);
+            get => (bool)GetValue(IsViewReusingEnabledProperty);
+            set => SetValue(IsViewReusingEnabledProperty, value);
         }
 
         public int UserInteractionDelay
@@ -336,10 +384,10 @@ namespace PanCardView
             set => SetValue(IsCyclicalProperty, value);
         }
 
-        public bool IsAutoNavigatingAimationEnabled
+        public bool IsAutoNavigatingAnimationEnabled
         {
-            get => (bool)GetValue(IsAutoNavigatingAimationEnabledProperty);
-            set => SetValue(IsAutoNavigatingAimationEnabledProperty, value);
+            get => (bool)GetValue(IsAutoNavigatingAnimationEnabledProperty);
+            set => SetValue(IsAutoNavigatingAnimationEnabledProperty, value);
         }
 
         public bool AreAnimationsEnabled
@@ -385,11 +433,31 @@ namespace PanCardView
         /// <summary>
         /// Only for Android
         /// </summary>
-        /// <value>Move threshold distance.</value>
+        /// <value>Vertical swipe threshold distance.</value>
         public double VerticalSwipeThresholdDistance
         {
             get => (double)GetValue(VerticalSwipeThresholdDistanceProperty);
             set => SetValue(VerticalSwipeThresholdDistanceProperty, value);
+        }
+
+        /// <summary>
+        /// Only for Android
+        /// </summary>
+        /// <value>Should throttle pan interaction.</value>
+        public bool ShouldThrottlePanInteraction
+        {
+            get => (bool)GetValue(ShouldThrottlePanInteractionProperty);
+            set => SetValue(ShouldThrottlePanInteractionProperty, value);
+        }
+
+        /// <summary>
+        /// Only for Android and iOS
+        /// </summary>
+        /// <value>Move threshold distance.</value>
+        public bool IsVerticalSwipeEnabled
+        {
+            get => (bool)GetValue(IsVerticalSwipeEnabledProperty);
+            set => SetValue(IsVerticalSwipeEnabledProperty, value);
         }
 
         public TimeSpan SwipeThresholdTime
@@ -410,6 +478,12 @@ namespace PanCardView
             set => SetValue(ItemDisappearingCommandProperty, value);
         }
 
+        public ICommand ItemAppearedCommand
+        {
+            get => GetValue(ItemAppearedCommandProperty) as ICommand;
+            set => SetValue(ItemAppearedCommandProperty, value);
+        }
+
         public ICommand ItemAppearingCommand
         {
             get => GetValue(ItemAppearingCommandProperty) as ICommand;
@@ -422,12 +496,35 @@ namespace PanCardView
             set => SetValue(ItemSwipedCommandProperty, value);
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool? ShouldAutoNavigateToNext
+        {
+            get => GetValue(ShouldAutoNavigateToNextProperty) as bool?;
+            set => SetValue(ShouldAutoNavigateToNextProperty, value);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public double ProcessorDiff
+        {
+            get => (double)GetValue(ProcessorDiffProperty);
+            set => SetValue(ProcessorDiffProperty, value);
+        }
+
+        public object this[int index] => ItemsSource?.FindValue(index);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static void Preserve()
+        {
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void OnPanUpdated(object sender, PanUpdatedEventArgs e)
         => OnPanUpdated(e);
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void OnPanUpdated(PanUpdatedEventArgs e)
         {
-            if (ItemsCount <= 0)
+            if (ItemsCount <= 0 || !IsPanInteractionEnabled)
             {
                 return;
             }
@@ -443,23 +540,36 @@ namespace PanCardView
                     return;
                 case GestureStatus.Canceled:
                 case GestureStatus.Completed:
+                    if (Device.RuntimePlatform == Device.Android)
+                    {
+                        OnTouchChanged(e.TotalX);
+                    }
                     OnTouchEnded();
                     return;
             }
         }
 
-        public void OnSwiped(ItemSwipeDirection swipeDirection)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public async void OnSwiped(ItemSwipeDirection swipeDirection)
         {
-            if (!IsUserInteractionEnabled)
+            await Task.Delay(1);
+            if (!IsUserInteractionEnabled || !_isPanEndRequested || !CheckInteractionDelay())
             {
                 return;
             }
+            _lastPanTime = DateTime.UtcNow;
 
             var oldIndex = SelectedIndex;
             if ((int)swipeDirection < 2)
             {
+                //https://github.com/AndreiMisiukevich/CardView/issues/285
+                if (!IsUserInteractionRunning && !IsAutoInteractionRunning)
+                {
+                    SetupBackViews();
+                }
+
                 var isLeftSwiped = swipeDirection == ItemSwipeDirection.Left;
-                var haveItems = (isLeftSwiped && NextViews.Any()) || ((!isLeftSwiped && PrevViews.Any()));
+                var haveItems = (isLeftSwiped && NextViews.Any()) || (!isLeftSwiped && PrevViews.Any());
                 var isAndroid = Device.RuntimePlatform == Device.Android;
 
                 if (IsPanSwipeEnabled && haveItems && isAndroid)
@@ -473,34 +583,104 @@ namespace PanCardView
                     {
                         isLeftSwiped = !isLeftSwiped;
                     }
-                    SelectedIndex = (SelectedIndex + (isLeftSwiped ? 1 : -1)).ToCyclingIndex(ItemsCount);
+
+                    SetSelectedWithShouldAutoNavigateToNext(isLeftSwiped);
                 }
             }
 
             FireItemSwiped(swipeDirection, oldIndex);
         }
 
-        protected virtual void OnSizeChanged()
+        protected internal virtual async void SetCurrentView()
+        {
+            var isHardSet = CheckIsHardSetCurrentView();
+
+            if (!isHardSet && (!_hasRenderer || Parent == null || await TryAutoNavigate()))
+            {
+                return;
+            }
+
+            if (!isHardSet)
+            {
+                SetAllViews(false);
+                return;
+            }
+
+            await HardSetAsync();
+        }
+
+        protected virtual void SetAllViews(bool shouldCleanUnprocessingViews)
+        {
+            lock (_setCurrentViewLocker)
+            {
+                if (ItemsSource != null)
+                {
+                    var oldView = CurrentView;
+                    CurrentView = InitViews(FrontViewProcessor, AnimationDirection.Current, Enumerable.Empty<View>(), SelectedIndex).FirstOrDefault();
+                    var newView = CurrentView;
+
+                    if (CurrentView == null && SelectedIndex >= 0)
+                    {
+                        ShouldIgnoreSetCurrentView = true;
+                        SelectedIndex = -1;
+                    }
+                    else if (SelectedIndex != OldIndex)
+                    {
+                        var isNextSelected = SelectedIndex > OldIndex;
+                        FireItemDisappearing(InteractionType.User, isNextSelected, OldIndex);
+                        FireItemAppearing(InteractionType.User, isNextSelected, SelectedIndex);
+                        FireItemAppeared(InteractionType.User, isNextSelected, SelectedIndex);
+                    }
+
+                    SetupBackViews();
+                }
+                CleanUnprocessingChildren();
+            }
+        }
+
+        //https://github.com/AndreiMisiukevich/CardView/issues/286
+        protected virtual async Task HardSetAsync()
+        {
+            var opacity = Opacity;
+            var scale = Scale;
+            var time = 150u;
+
+            await Task.WhenAll(
+                this.FadeTo(0, time, Easing.CubicIn),
+                this.ScaleTo(.75, time, Easing.CubicIn));
+            SetAllViews(true);
+            await Task.Delay(10);
+            await Task.WhenAll(
+                this.FadeTo(opacity, time, Easing.CubicOut),
+                this.ScaleTo(scale, time, Easing.CubicOut));
+        }
+
+        protected virtual async void OnSizeChanged()
         {
             if (CurrentView != null && ItemTemplate != null)
             {
                 var currentViewPair = _viewsPool.FirstOrDefault(p => p.Value.Contains(CurrentView));
-                currentViewPair.Value.Clear();
-                currentViewPair.Value.Add(CurrentView);
-                _viewsPool.Clear();
-                _viewsPool.Add(currentViewPair.Key, currentViewPair.Value);
+                if (!currentViewPair.Equals(default(KeyValuePair<object, List<View>>)))
+                {
+                    currentViewPair.Value.Clear();
+                    currentViewPair.Value.Add(CurrentView);
+                    _viewsPool.Clear();
+                    _viewsPool.Add(currentViewPair.Key, currentViewPair.Value);
+                }
             }
-
+            await Task.Delay(1);// Workaround for https://github.com/AndreiMisiukevich/CardView/issues/194
             SetCurrentView();
             RemoveUnprocessingChildren();
             LayoutChildren(X, Y, Width, Height);
             ForceLayout();
         }
 
-        protected virtual void SetupBackViews()
+        protected virtual void SetupBackViews(int? index = null)
         {
-            SetupNextView();
-            SetupPrevView();
+            var realIndex = index ?? SelectedIndex;
+
+            var bookedView = SetupNextView(realIndex, Enumerable.Repeat(CurrentView, 1));
+            SetupPrevView(realIndex, bookedView);
 
             if (IsRightToLeftFlowDirectionEnabled)
             {
@@ -519,44 +699,12 @@ namespace PanCardView
             }
         }
 
-        protected virtual async void SetCurrentView()
-        {
-            if (!_hasRenderer || Parent == null || await TryAutoNavigate())
-            {
-                return;
-            }
-
-            lock (_setCurrentViewLocker)
-            {
-                if (ItemsSource != null)
-                {
-                    var oldView = CurrentView;
-                    CurrentView = GetViews(AnimationDirection.Current, FrontViewProcessor, SelectedIndex).FirstOrDefault();
-                    var newView = CurrentView;
-
-                    if (CurrentView == null && SelectedIndex >= 0)
-                    {
-                        ShouldIgnoreSetCurrentView = true;
-                        SelectedIndex = -1;
-                    }
-                    else if (SelectedIndex != OldIndex)
-                    {
-                        var isNextSelected = SelectedIndex > OldIndex;
-                        FireItemDisappearing(InteractionType.User, isNextSelected, OldIndex);
-                        FireItemAppearing(InteractionType.User, isNextSelected, SelectedIndex);
-                    }
-
-                    SetupBackViews();
-                }
-            }
-        }
-
         protected virtual void SetSelectedItem()
         {
             var index = SelectedIndex;
             if (IsCyclical)
             {
-                index = index.ToCyclingIndex(ItemsCount);
+                index = index.ToCyclicalIndex(ItemsCount);
             }
 
             if (!CheckIndexValid(index))
@@ -565,12 +713,12 @@ namespace PanCardView
                 return;
             }
 
-            SelectedItem = ItemsSource[index];
+            SelectedItem = this[index];
         }
 
         protected virtual async void AdjustSlideShow(bool isForceStop = false)
         {
-            _slideshowTokenSource?.Cancel();
+            _slideShowTokenSource?.Cancel();
             if (isForceStop)
             {
                 return;
@@ -578,8 +726,8 @@ namespace PanCardView
 
             if (SlideShowDuration > 0)
             {
-                _slideshowTokenSource = new CancellationTokenSource();
-                var token = _slideshowTokenSource.Token;
+                _slideShowTokenSource = new CancellationTokenSource();
+                var token = _slideShowTokenSource.Token;
                 while (true)
                 {
                     await Task.Delay(SlideShowDuration);
@@ -589,7 +737,7 @@ namespace PanCardView
                     }
                     if (ItemsCount > 0)
                     {
-                        SelectedIndex = (SelectedIndex.ToCyclingIndex(ItemsCount) + 1).ToCyclingIndex(ItemsCount);
+                        SetSelectedWithShouldAutoNavigateToNext(true);
                     }
                 }
             }
@@ -597,14 +745,14 @@ namespace PanCardView
 
         protected virtual async Task<bool> TryAutoNavigate()
         {
-            if (CurrentView == null || !IsAutoNavigatingAimationEnabled)
+            if (CurrentView == null || !IsAutoNavigatingAnimationEnabled)
             {
                 return false;
             }
 
-            var context = GetContext(SelectedIndex, AnimationDirection.Current);
+            var context = GetContext(SelectedIndex, true);
 
-            if (GetItem(CurrentView) == context)
+            if (Equals(GetItem(CurrentView), context))
             {
                 return false;
             }
@@ -613,71 +761,50 @@ namespace PanCardView
             var realDirection = animationDirection;
             if (IsRightToLeftFlowDirectionEnabled)
             {
-                realDirection = ((AnimationDirection)Sign(-(int)realDirection));
+                realDirection = (AnimationDirection)Sign(-(int)realDirection);
             }
 
             var oldView = CurrentView;
-            var newView = PrepareView(SelectedIndex, AnimationDirection.Current, Enumerable.Empty<View>());
+            SetupBackViews(OldIndex);
+            ResetActiveInactiveBackViews(realDirection);
+            var newView = InitViews(BackViewProcessor, realDirection, Enumerable.Empty<View>(), SelectedIndex).FirstOrDefault();
+            SwapViews(realDirection);
             CurrentView = newView;
 
-            BackViewProcessor.HandleInitView(Enumerable.Repeat(CurrentView, 1), this, realDirection);
 
-            SetupLayout(CurrentView);
-
-            AddChild(oldView, CurrentView);
+            var views = CurrentBackViews
+                .Union(CurrentInactiveBackViews)
+                .Union(Enumerable.Repeat(CurrentView, 1))
+                .Where(x => x != null);
 
             var animationId = Guid.NewGuid();
-            StartAutoNavigation(oldView, animationId, animationDirection);
+            StartAutoNavigation(views, animationId, animationDirection);
+            await Task.Delay(5);
             var autoNavigationTask = Task.WhenAll(
-                BackViewProcessor.HandleAutoNavigate(Enumerable.Repeat(oldView, 1), this, realDirection, CurrentInactiveBackViews),
+                BackViewProcessor.HandleAutoNavigate(CurrentBackViews, this, realDirection, CurrentInactiveBackViews),
                 FrontViewProcessor.HandleAutoNavigate(Enumerable.Repeat(CurrentView, 1), this, realDirection, Enumerable.Empty<View>()));
 
-            if (ItemTemplate != null)
-            {
-                SetupBackViews();
-            }
-
             await autoNavigationTask;
-            EndAutoNavigation(oldView, animationId, animationDirection);
+
+            EndAutoNavigation(views, animationId, animationDirection);
 
             return true;
         }
 
-        protected virtual void SetupNextView()
+        protected virtual void OnObservableCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            var indeces = new int[BackViewsDepth];
-            for (int i = 0; i < indeces.Length; ++i)
+            ItemsCount = ItemsSource?.Count() ?? -1;
+
+            ShouldSetIndexAfterPan = IsUserInteractionRunning;
+            if (!IsUserInteractionRunning)
             {
-                indeces[i] = SelectedIndex + 1 + i;
+                SetNewIndex();
             }
-
-            NextViews = GetViews(AnimationDirection.Next, BackViewProcessor, indeces);
-        }
-
-        protected virtual void SetupPrevView()
-        {
-            var prevIndex = IsOnlyForwardDirection
-                ? SelectedIndex + 1
-                : SelectedIndex - 1;
-
-
-            var indeces = new int[BackViewsDepth];
-            for (int i = 0; i < indeces.Length; ++i)
-            {
-                var incValue = i + 1;
-                if (!IsOnlyForwardDirection)
-                {
-                    incValue = -incValue;
-                }
-                indeces[i] = SelectedIndex + incValue;
-            }
-
-            PrevViews = GetViews(AnimationDirection.Prev, BackViewProcessor, indeces);
         }
 
         protected virtual bool CheckIsProtectedView(View view) => view.Behaviors.Any(b => b is ProtectedControlBehavior);
 
-        protected virtual bool CheckIsCacheEnabled(DataTemplate template) => IsViewCacheEnabled;
+        protected virtual bool CheckIsHardSetCurrentView() => false;
 
         protected override void OnSizeAllocated(double width, double height)
         {
@@ -691,24 +818,32 @@ namespace PanCardView
                     return;
                 }
 
-                var parerntWidth = parent.Width;
+                var parentWidth = parent.Width;
                 var parentHeight = parent.Height;
-                var isValidParentSize = parerntWidth > 0 && parentHeight > 0;
+                var isValidSize = width > 0 && height > 0;
+                var isValidParentSize = parentWidth > 0 && parentHeight > 0;
 
-                if (!_isViewsInited && isValidParentSize)
+                if (!_isViewInited && isValidParentSize && isValidSize)
                 {
-                    _isViewsInited = true;
-                    StoreParentSize(parerntWidth, parentHeight);
+                    _isViewInited = true;
+                    StoreParentSize(parentWidth, parentHeight);
+                    var prevAnimationDirection = AnimationDirection.Prev;
+                    var nextAnimationDirection = AnimationDirection.Next;
+                    if (IsRightToLeftFlowDirectionEnabled)
+                    {
+                        prevAnimationDirection = AnimationDirection.Next;
+                        nextAnimationDirection = AnimationDirection.Prev;
+                    }
                     FrontViewProcessor.HandleInitView(Enumerable.Repeat(CurrentView, 1), this, AnimationDirection.Current);
-                    BackViewProcessor.HandleInitView(PrevViews, this, AnimationDirection.Prev);
-                    BackViewProcessor.HandleInitView(NextViews, this, AnimationDirection.Next);
+                    BackViewProcessor.HandleInitView(PrevViews, this, prevAnimationDirection);
+                    BackViewProcessor.HandleInitView(NextViews, this, nextAnimationDirection);
                 }
-                if (_isViewsInited &&
+                if (_isViewInited &&
                     isValidParentSize &&
-                    Abs(_parentWidth - parerntWidth) > double.Epsilon &&
-                    Abs(_parentHeight - parentHeight) > double.Epsilon)
+                    Abs(_parentSize.Width - parentWidth) > double.Epsilon &&
+                    Abs(_parentSize.Height - parentHeight) > double.Epsilon)
                 {
-                    StoreParentSize(parerntWidth, parentHeight);
+                    StoreParentSize(parentWidth, parentHeight);
                     OnSizeChanged();
                 }
             }
@@ -737,30 +872,94 @@ namespace PanCardView
             SetCurrentView();
         }
 
-        private void StoreParentSize(double width, double height)
+        private IEnumerable<View> SetupNextView(int index, IEnumerable<View> bookedViews)
         {
-            _parentWidth = width;
-            _parentHeight = height;
+            var indeces = new int[BackViewsDepth];
+            for (int i = 0; i < indeces.Length; ++i)
+            {
+                indeces[i] = index + 1 + i;
+            }
+
+            NextViews = IsNextItemPanInteractionEnabled
+                ? InitViews(BackViewProcessor, AnimationDirection.Next, bookedViews, indeces)
+                : Enumerable.Empty<View>();
+            return bookedViews.Union(NextViews);
         }
 
-        private void SetPanGesture(bool _isForceRemove = false)
+        private IEnumerable<View> SetupPrevView(int index, IEnumerable<View> bookedViews)
+        {
+            var isForwardOnly = IsOnlyForwardDirection;
+
+            var indeces = new int[BackViewsDepth];
+            for (int i = 0; i < indeces.Length; ++i)
+            {
+                var incValue = i + 1;
+                if (!isForwardOnly)
+                {
+                    incValue = -incValue;
+                }
+                indeces[i] = index + incValue;
+            }
+
+            PrevViews = (IsPrevItemPanInteractionEnabled && !isForwardOnly) || (IsNextItemPanInteractionEnabled && isForwardOnly)
+                ? InitViews(BackViewProcessor, AnimationDirection.Prev, bookedViews, indeces)
+                : Enumerable.Empty<View>();
+            return bookedViews.Union(PrevViews);
+        }
+
+        private void StoreParentSize(double width, double height)
+        => _parentSize = new Size(width, height);
+
+        private void SetPanGesture(bool isForceRemoving = false)
         {
             if (Device.RuntimePlatform != Device.Android)
             {
                 _panGesture.PanUpdated -= OnPanUpdated;
                 GestureRecognizers.Remove(_panGesture);
-                if (_isForceRemove)
+                if (isForceRemoving)
                 {
                     return;
                 }
                 _panGesture.PanUpdated += OnPanUpdated;
                 GestureRecognizers.Add(_panGesture);
             }
+
+            if (Device.RuntimePlatform == Device.GTK || Device.RuntimePlatform == Device.Tizen)
+            {
+                var lastTapTime = DateTime.MinValue;
+                const int delay = 200;
+                CancellationTokenSource tapCts = null;
+
+                GestureRecognizers.Clear();
+                GestureRecognizers.Add(new TapGestureRecognizer
+                {
+                    Command = new Command(async () =>
+                    {
+                        var now = DateTime.UtcNow;
+                        if (Abs((now - lastTapTime).TotalMilliseconds) < delay)
+                        {
+                            tapCts?.Cancel();
+                            lastTapTime = DateTime.MinValue;
+                            SelectedIndex = (SelectedIndex.ToCyclicalIndex(ItemsCount) - 1).ToCyclicalIndex(ItemsCount);
+                            return;
+                        }
+                        lastTapTime = now;
+                        tapCts = new CancellationTokenSource();
+                        var token = tapCts.Token;
+                        await Task.Delay(delay);
+                        if (!token.IsCancellationRequested)
+                        {
+                            SelectedIndex = (SelectedIndex.ToCyclicalIndex(ItemsCount) + 1).ToCyclicalIndex(ItemsCount);
+                            return;
+                        }
+                    })
+                });
+            }
         }
 
-        private void StartAutoNavigation(View oldView, Guid animationId, AnimationDirection animationDirection)
+        private void StartAutoNavigation(IEnumerable<View> views, Guid animationId, AnimationDirection animationDirection)
         {
-            if (oldView != null)
+            if (views != null)
             {
                 _interactions.Add(animationId, InteractionType.Auto, InteractionState.Removing);
                 IsAutoInteractionRunning = true;
@@ -770,27 +969,36 @@ namespace PanCardView
                 }
                 lock (_viewsInUseLocker)
                 {
-                    _viewsInUse.Add(oldView);
+                    _viewsInUseSet.AddRange(views);
                 }
                 FireItemDisappearing(InteractionType.Auto, animationDirection != AnimationDirection.Prev, OldIndex);
+                FireItemAppearing(InteractionType.Auto, animationDirection != AnimationDirection.Prev, SelectedIndex);
             }
         }
 
-        private void EndAutoNavigation(View oldView, Guid animationId, AnimationDirection animationDirection)
+        private void EndAutoNavigation(IEnumerable<View> views, Guid animationId, AnimationDirection animationDirection)
         {
+            var isProcessingNow = !_interactions.CheckLastId(animationId);
+
             _inCoursePanDelay = 0;
-            if (oldView != null)
+            if (views != null)
             {
                 lock (_viewsInUseLocker)
                 {
-                    _viewsInUse.Remove(oldView);
-                    CleanView(oldView);
+                    _viewsInUseSet.RemoveRange(views);
+                    if (isProcessingNow && BackViewsDepth <= 1)
+                    {
+                        foreach (var view in views.Where(v => !_viewsInUseSet.Contains(v) && v != CurrentView))
+                        {
+                            CleanView(view);
+                        }
+                    }
                 }
             }
+
             IsAutoInteractionRunning = false;
-            var isProcessingNow = !_interactions.CheckLastId(animationId);
             RemoveRedundantChildren(isProcessingNow);
-            FireItemAppearing(InteractionType.Auto, animationDirection != AnimationDirection.Prev, SelectedIndex);
+            FireItemAppeared(InteractionType.Auto, animationDirection != AnimationDirection.Prev, SelectedIndex);
             _interactions.Remove(animationId);
         }
 
@@ -803,20 +1011,28 @@ namespace PanCardView
                        : AnimationDirection.Next;
             }
 
-            var recIndex = SelectedIndex.ToCyclingIndex(ItemsCount);
-            var oldRecIndex = OldIndex.ToCyclingIndex(ItemsCount);
-
-            var deltaIndex = recIndex - oldRecIndex;
-            if (Abs(deltaIndex) == 1)
+            if(ShouldAutoNavigateToNext.HasValue)
             {
-                return deltaIndex > 0
+                return ShouldAutoNavigateToNext.GetValueOrDefault()
                     ? AnimationDirection.Next
-                     : AnimationDirection.Prev;
+                    : AnimationDirection.Prev;
             }
 
-            return deltaIndex > 0
-                    ? AnimationDirection.Prev
-                     : AnimationDirection.Next;
+            var recIndex = SelectedIndex.ToCyclicalIndex(ItemsCount);
+            var oldRecIndex = OldIndex.ToCyclicalIndex(ItemsCount);
+
+            var deltaIndex = recIndex - oldRecIndex;
+
+            var aniamationDirection = (AnimationDirection)Sign(deltaIndex);
+
+            var cyclingDeltaIndex = ItemsCount - Max(recIndex, oldRecIndex) + Min(recIndex, oldRecIndex);
+
+            if (cyclingDeltaIndex < Abs(deltaIndex))
+            {
+                aniamationDirection = (AnimationDirection)(-(int)aniamationDirection);
+            }
+
+            return aniamationDirection;
         }
 
         private void OnTouchStarted()
@@ -827,8 +1043,7 @@ namespace PanCardView
                 return;
             }
 
-            var deltaTime = DateTime.Now - _lastPanTime;
-            if (!IsUserInteractionEnabled || deltaTime.TotalMilliseconds < UserInteractionDelay || CurrentView == null)
+            if (!CheckInteractionDelay())
             {
                 _shouldSkipTouch = true;
                 return;
@@ -844,7 +1059,10 @@ namespace PanCardView
             _interactions.Add(gestureId, InteractionType.User);
 
             FireUserInteracted(UserInteractionStatus.Started, CurrentDiff, SelectedIndex);
-            IsUserInteractionRunning = true;
+            if (Device.RuntimePlatform != Device.Android)
+            {
+                IsUserInteractionRunning = true;
+            }
             _isPanEndRequested = false;
 
             SetupBackViews();
@@ -852,17 +1070,25 @@ namespace PanCardView
 
             _timeDiffItems.Add(new TimeDiffItem
             {
-                Time = DateTime.Now,
+                Time = DateTime.UtcNow,
                 Diff = 0
             });
         }
 
         private void OnTouchChanged(double diff)
         {
-            if (_shouldSkipTouch || (_shouldScrollParent ?? false))
+            if (_shouldSkipTouch || (_shouldScrollParent ?? false) || Abs(CurrentDiff - diff) <= double.Epsilon)
             {
                 return;
             }
+
+            var interactionItem = _interactions.GetFirstItem(InteractionType.User, InteractionState.Regular);
+            if (interactionItem == null)
+            {
+                return;
+            }
+
+            interactionItem.WasTouchChanged = true;
 
             ResetActiveInactiveBackViews(diff);
 
@@ -883,8 +1109,12 @@ namespace PanCardView
                 return;
             }
 
-            _lastPanTime = DateTime.Now;
             var interactionItem = _interactions.GetFirstItem(InteractionType.User, InteractionState.Regular);
+            if (interactionItem == null)
+            {
+                return;
+            }
+            _lastPanTime = DateTime.UtcNow;
             interactionItem.State = InteractionState.Removing;
             if (interactionItem.Id == default(Guid))
             {
@@ -919,7 +1149,7 @@ namespace PanCardView
 
             _timeDiffItems.Clear();
 
-            Task endingTask = null;
+            Task endingTask;
             if (isNextSelected.HasValue)
             {
                 index = GetNewIndexFromDiff();
@@ -940,28 +1170,27 @@ namespace PanCardView
             }
             else
             {
-                endingTask = Task.WhenAll(
-                    FrontViewProcessor.HandlePanReset(Enumerable.Repeat(CurrentView, 1), this, _currentBackAnimationDirection, Enumerable.Empty<View>()),
-                    BackViewProcessor.HandlePanReset(CurrentBackViews, this, _currentBackAnimationDirection, CurrentInactiveBackViews)
-                );
+                endingTask = interactionItem.WasTouchChanged
+                    ? Task.WhenAll(
+                        FrontViewProcessor.HandlePanReset(Enumerable.Repeat(CurrentView, 1), this, _currentBackAnimationDirection, Enumerable.Empty<View>()),
+                        BackViewProcessor.HandlePanReset(CurrentBackViews, this, _currentBackAnimationDirection, CurrentInactiveBackViews))
+                    : Task.FromResult(true);
             }
-
-            var oldView = CurrentBackViews.FirstOrDefault();
-            var newView = CurrentView;
 
             FireUserInteracted(UserInteractionStatus.Ending, diff, oldIndex);
             if (isNextSelected.HasValue)
             {
                 FireItemDisappearing(InteractionType.User, isNextSelected.GetValueOrDefault(), oldIndex);
+                FireItemAppearing(InteractionType.User, isNextSelected.GetValueOrDefault(), index);
             }
-            CurrentDiff = 0;
 
+            CurrentDiff = 0;
             await endingTask;
 
             FireUserInteracted(UserInteractionStatus.Ended, diff, oldIndex);
             if (isNextSelected.HasValue)
             {
-                FireItemAppearing(InteractionType.User, isNextSelected.GetValueOrDefault(), index);
+                FireItemAppeared(InteractionType.User, isNextSelected.GetValueOrDefault(), index);
             }
 
             var isProcessingNow = !_interactions.CheckLastId(gestureId);
@@ -983,6 +1212,9 @@ namespace PanCardView
 
             _interactions.Remove(gestureId);
         }
+
+        private bool CheckInteractionDelay()
+            => IsUserInteractionEnabled && Abs((DateTime.UtcNow - _lastPanTime).TotalMilliseconds) >= UserInteractionDelay && CurrentView != null;
 
         private bool? CheckPanSwipe()
         {
@@ -1016,7 +1248,7 @@ namespace PanCardView
 
         private void SetupDiffItems(double diff)
         {
-            var timeNow = DateTime.Now;
+            var timeNow = DateTime.UtcNow;
 
             if (_timeDiffItems.Count >= 25)
             {
@@ -1059,23 +1291,34 @@ namespace PanCardView
                     return -1;
                 }
 
-                newIndex = newIndex.ToCyclingIndex(ItemsCount);
+                newIndex = newIndex.ToCyclicalIndex(ItemsCount);
             }
 
             return newIndex;
         }
 
-        private void ResetActiveInactiveBackViews(double diff)
+        private void SetSelectedWithShouldAutoNavigateToNext(bool isNext)
+        {
+            try
+            {
+                ShouldAutoNavigateToNext = isNext;
+                SelectedIndex = (SelectedIndex + (isNext ? 1 : -1)).ToCyclicalIndex(ItemsCount);
+            }
+            finally
+            {
+                ShouldAutoNavigateToNext = null;
+            }
+        }
+
+        private void ResetActiveInactiveBackViews(AnimationDirection animationDirection)
         {
             var activeViews = NextViews;
             var inactiveViews = PrevViews;
-            var animationDirection = AnimationDirection.Next;
 
-            if (diff > 0)
+            if (animationDirection == AnimationDirection.Prev)
             {
                 activeViews = PrevViews;
                 inactiveViews = NextViews;
-                animationDirection = AnimationDirection.Prev;
             }
 
             CurrentBackViews = activeViews;
@@ -1089,11 +1332,14 @@ namespace PanCardView
                 : null;
         }
 
+        private void ResetActiveInactiveBackViews(double diff)
+        => ResetActiveInactiveBackViews(diff > 0 ? AnimationDirection.Prev : AnimationDirection.Next);
+
         private void SwapViews(bool isNext)
         {
             var view = CurrentView;
             CurrentView = CurrentBackViews.FirstOrDefault();
-            CurrentBackViews = CurrentBackViews.Except(Enumerable.Repeat(CurrentView, 1)).Union(Enumerable.Repeat(view, 1));
+            CurrentBackViews = Enumerable.Repeat(view, 1).Union(CurrentBackViews.Except(Enumerable.Repeat(CurrentView, 1)));
 
             if (isNext)
             {
@@ -1105,13 +1351,29 @@ namespace PanCardView
             NextViews = CurrentBackViews;
         }
 
-        private IEnumerable<View> GetViews(AnimationDirection animationDirection, ICardProcessor processor, params int[] indeces)
+        private void SwapViews(AnimationDirection animationDirection)
+        => SwapViews(animationDirection == AnimationDirection.Next);
+
+        private IEnumerable<View> InitViews(ICardProcessor processor, AnimationDirection animationDirection, IEnumerable<View> bookedViews, params int[] indeces)
         {
             var views = new View[indeces.Length];
 
-            for (int i = 0; i < indeces.Length; ++i)
+            try
             {
-                views[i] = PrepareView(indeces[i], animationDirection, views);
+                BatchBegin();
+                for (int i = 0; i < indeces.Length; ++i)
+                {
+                    var view = PrepareView(bookedViews, indeces[i]);
+                    views[i] = view;
+                    if (view != null)
+                    {
+                        bookedViews = bookedViews.Union(Enumerable.Repeat(view, 1));
+                    }
+                }
+            }
+            finally
+            {
+                BatchCommit();
             }
 
             if (views.All(x => x == null))
@@ -1134,9 +1396,9 @@ namespace PanCardView
             return views;
         }
 
-        private View PrepareView(int index, AnimationDirection animationDirection, IEnumerable<View> bookedViews)
+        private View PrepareView(IEnumerable<View> bookedViews, int index)
         {
-            var context = GetContext(index, animationDirection);
+            var context = GetContext(index, !bookedViews.Any());
 
             if (context == null)
             {
@@ -1155,7 +1417,11 @@ namespace PanCardView
 
             if (view != null && view != context)
             {
-                view.BindingContext = context;
+                if (view.BindingContext != context)
+                {
+                    view.BindingContext = null;
+                    view.BindingContext = context;
+                }
                 view.Behaviors.Remove(_contextAssignedBehavior);
                 view.Behaviors.Add(_contextAssignedBehavior);
             }
@@ -1165,36 +1431,36 @@ namespace PanCardView
 
         private View CreateRetrieveView(object context, DataTemplate template, IEnumerable<View> bookedViews)
         {
-            if (!CheckIsCacheEnabled(template))
+            if (!_viewsPool.TryGetValue(template, out HashSet<View> viewsCollection))
             {
-                return template.CreateView();
+                viewsCollection = new HashSet<View>();
+                _viewsPool.Add(template, viewsCollection);
             }
 
-            List<View> viewsList;
-            if (!_viewsPool.TryGetValue(template, out viewsList))
+            var notUsingViews = viewsCollection.Where(v => !_viewsInUseSet.Contains(v) && !bookedViews.Contains(v));
+            var view = notUsingViews.FirstOrDefault(v => Equals(v.BindingContext, context) || v == context);
+            if(IsViewReusingEnabled)
             {
-                viewsList = new List<View>
-                {
-                    template.CreateView()
-                };
-                _viewsPool.Add(template, viewsList);
+                view = view ?? notUsingViews.FirstOrDefault(v => v.BindingContext == null)
+                            ?? notUsingViews.FirstOrDefault(v => !CheckIsProcessingView(v));
             }
-
-            var notUsingViews = viewsList.Where(v => !_viewsInUse.Contains(v));
-            var view = notUsingViews.FirstOrDefault(v => v.BindingContext == context || v == context)
-                                    ?? notUsingViews.FirstOrDefault(v => v.BindingContext == null)
-                                    ?? notUsingViews.FirstOrDefault(v => !CheckIsProcessingView(v) && !bookedViews.Contains(v));
 
             if (view == null)
             {
                 view = template.CreateView();
-                viewsList.Add(view);
+                viewsCollection.Add(view);
+            }
+
+            // https://github.com/AndreiMisiukevich/CardView/issues/282
+            if (IsCyclical && BackViewsDepth > 1 && ItemsCount <= BackViewsDepth * 2)
+            {
+                BackViewProcessor.HandleCleanView(notUsingViews.Except(Enumerable.Repeat(view, 1)), this);
             }
 
             return view;
         }
 
-        private object GetContext(int index, AnimationDirection animationDirection)
+        private object GetContext(int index, bool isCurrent)
         {
             if (ItemsCount <= 0)
             {
@@ -1203,12 +1469,12 @@ namespace PanCardView
 
             if (!CheckIndexValid(index))
             {
-                if (!IsCyclical || (animationDirection != AnimationDirection.Current && ItemsCount <= 1))
+                if (!IsCyclical || (!isCurrent && ItemsCount <= 1))
                 {
                     return null;
                 }
 
-                index = index.ToCyclingIndex(ItemsCount);
+                index = index.ToCyclicalIndex(ItemsCount);
             }
 
             if (index < 0 || ItemsSource == null)
@@ -1216,7 +1482,18 @@ namespace PanCardView
                 return null;
             }
 
-            return ItemsSource[index];
+            return this[index];
+        }
+
+        private void RemoveRangeViewsPool(View[] views)
+        {
+            foreach(var view in views)
+            {
+                foreach (var viewsCollection in _viewsPool.Values)
+                {
+                    viewsCollection.Remove(view);
+                }
+            }
         }
 
         private bool CheckContextAssigned(View view)
@@ -1231,10 +1508,10 @@ namespace PanCardView
         {
             if (IsCyclical)
             {
-                index = index.ToCyclingIndex(ItemsCount);
+                index = index.ToCyclicalIndex(ItemsCount);
             }
             return index >= 0 && index < ItemsCount
-                ? ItemsSource[index]
+                ? this[index]
                     : null;
         }
 
@@ -1252,45 +1529,46 @@ namespace PanCardView
 
                 if (currentIndex < backIndex)
                 {
-                    LowerChild(view);
+                    ExecutePreventInvalidOperationException(() => LowerChild(view));
+                }
+            }
+        }
+
+        private void CleanUnprocessingChildren()
+        {
+            lock (_childLocker)
+            {
+                var views = Children.Where(c => !CheckIsProtectedView(c) && !CheckIsProcessingView(c)).ToArray();
+                foreach (var view in views)
+                {
+                    CleanView(view);
                 }
             }
         }
 
         private void CleanView(View view)
         {
-            if (CheckContextAssigned(view))
+            if (CheckContextAssigned(view) && IsViewReusingEnabled)
             {
-                view.Behaviors.Remove(_contextAssignedBehavior);
                 view.BindingContext = null;
             }
+            view.Behaviors.Remove(_contextAssignedBehavior);
+            BackViewProcessor.HandleCleanView(Enumerable.Repeat(view, 1), this);
         }
 
-        private void SetItemsCount()
+        private void SetItemsSource(IEnumerable oldCollection)
         {
-            if (_currentObservableCollection != null)
+            if (oldCollection is INotifyCollectionChanged oldObservableCollection)
             {
-                _currentObservableCollection.CollectionChanged -= OnObservableCollectionChanged;
+                oldObservableCollection.CollectionChanged -= OnObservableCollectionChanged;
             }
 
             if (ItemsSource is INotifyCollectionChanged observableCollection)
             {
-                _currentObservableCollection = observableCollection;
                 observableCollection.CollectionChanged += OnObservableCollectionChanged;
             }
 
-            OnObservableCollectionChanged(ItemsSource, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
-
-        private void OnObservableCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            ItemsCount = ItemsSource?.Count ?? -1;
-
-            ShouldSetIndexAfterPan = IsUserInteractionRunning;
-            if (!IsUserInteractionRunning)
-            {
-                SetNewIndex();
-            }
+            OnObservableCollectionChanged(oldCollection, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         private void SetNewIndex()
@@ -1306,9 +1584,10 @@ namespace PanCardView
 
             if (CurrentView != null)
             {
+                var currentItem = GetItem(CurrentView);
                 for (var i = 0; i < ItemsCount; ++i)
                 {
-                    if (ItemsSource[i] == GetItem(CurrentView))
+                    if (Equals(this[i], currentItem))
                     {
                         index = i;
                         isCurrentContextPresent = true;
@@ -1318,7 +1597,9 @@ namespace PanCardView
 
                 if (index < 0)
                 {
-                    index = SelectedIndex - 1;
+                    index = IsCyclical || SelectedIndex < ItemsCount
+                        ? SelectedIndex
+                        : ItemsCount - 1;
                 }
             }
 
@@ -1329,7 +1610,7 @@ namespace PanCardView
 
             if (SelectedIndex == index)
             {
-                if (!isCurrentContextPresent)
+                if (!isCurrentContextPresent || BackViewsDepth > 1)
                 {
                     OldIndex = index;
                     SetCurrentView();
@@ -1396,8 +1677,12 @@ namespace PanCardView
 
             lock (_childLocker)
             {
-                var views = Children.Where(c => !CheckIsProtectedView(c) && !CheckIsProcessingView(c) && !_viewsInUse.Contains(c)).Take(_viewsChildrenCount - DesiredMaxChildrenCount).ToArray();
-                RemoveChildren(views);
+                var views = Children.Where(c => !CheckIsProtectedView(c) && !CheckIsProcessingView(c) && !_viewsInUseSet.Contains(c));
+                if(IsViewReusingEnabled)
+                {
+                    views = views.Take(_viewsChildrenCount - DesiredMaxChildrenCount);
+                }
+                RemoveChildren(views.ToArray());
             }
         }
 
@@ -1416,12 +1701,16 @@ namespace PanCardView
             foreach (var view in views)
             {
                 ExecutePreventInvalidOperationException(() => Children.Remove(view));
-
                 CleanView(view);
+            }
+
+            if(!IsViewReusingEnabled)
+            {
+                RemoveRangeViewsPool(views);
             }
         }
 
-        private void ExecutePreventInvalidOperationException(Action action)
+        private void ExecutePreventInvalidOperationException(Action action, int restartCount = 0)
         {
             try
             {
@@ -1429,14 +1718,20 @@ namespace PanCardView
             }
             catch (InvalidOperationException)
             {
-                Device.BeginInvokeOnMainThread(() => {
+                Device.BeginInvokeOnMainThread(() =>
+                {
                     try
                     {
                         action?.Invoke();
                     }
                     catch (InvalidOperationException)
                     {
-                        System.Diagnostics.Debug.WriteLine("Couldn't handle InvalidOperationException");
+                        if (restartCount <= 0)
+                        {
+                            ExecutePreventInvalidOperationException(action, ++restartCount);
+                            return;
+                        }
+                        Console.WriteLine("CardsView: Couldn't handle InvalidOperationException");
                     }
                 });
             }
@@ -1463,13 +1758,8 @@ namespace PanCardView
             lock (_viewsInUseLocker)
             {
                 var views = NextViews.Union(PrevViews).Union(Enumerable.Repeat(CurrentView, 1));
-
                 _viewsGestureCounter[gestureId] = views;
-
-                foreach (var view in views.Where(v => v != null))
-                {
-                    _viewsInUse.Add(view);
-                }
+                _viewsInUseSet.AddRange(views);
             }
         }
 
@@ -1482,10 +1772,11 @@ namespace PanCardView
                     return;
                 }
 
-                foreach (var view in _viewsGestureCounter[gestureId])
+                var views = _viewsGestureCounter[gestureId];
+                _viewsInUseSet.RemoveRange(views);
+                if (isProcessingNow)
                 {
-                    _viewsInUse.Remove(view);
-                    if (isProcessingNow && !_viewsInUse.Contains(view))
+                    foreach (var view in views.Where(v => !_viewsInUseSet.Contains(v)))
                     {
                         CleanView(view);
                     }
@@ -1547,6 +1838,14 @@ namespace PanCardView
             var args = new ItemAppearingEventArgs(type, isNextSelected, index, item);
             ItemAppearingCommand?.Execute(args);
             ItemAppearing?.Invoke(this, args);
+        }
+
+        private void FireItemAppeared(InteractionType type, bool isNextSelected, int index)
+        {
+            var item = GetItem(index);
+            var args = new ItemAppearedEventArgs(type, isNextSelected, index, item);
+            ItemAppearedCommand?.Execute(args);
+            ItemAppeared?.Invoke(this, args);
         }
 
         private void FireItemSwiped(ItemSwipeDirection swipeDirection, int index)

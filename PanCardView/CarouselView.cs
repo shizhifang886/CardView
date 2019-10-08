@@ -1,7 +1,5 @@
-﻿using PanCardView.Controls;
-using PanCardView.Processors;
-using System;
-using System.Linq;
+﻿using PanCardView.Processors;
+using System.ComponentModel;
 
 namespace PanCardView
 {
@@ -11,29 +9,18 @@ namespace PanCardView
         {
         }
 
-        public CarouselView(ICardProcessor frontViewProcessor, ICardProcessor backViewProcessor) : base(frontViewProcessor, backViewProcessor)
+        public CarouselView(ICardProcessor frontViewProcessor, ICardBackViewProcessor backViewProcessor) : base(frontViewProcessor, backViewProcessor)
         {
             IsClippedToBounds = true;
-            IsCyclical = true;
-            MoveWidthPercentage = .3;
         }
 
-        [Obsolete("No need use this property. Just add the IndicatorsControl as child element.")]
-        public IndicatorsControl IndicatorsControl
-        {
-            set
-            {
-                var control = Children.FirstOrDefault(c => c is IndicatorsControl);
-                if (control != null)
-                {
-                    Children.Remove(control);
-                }
+        protected override double DefaultMoveWidthPercentage => .3;
 
-                if (value != null)
-                {
-                    Children.Add(value);
-                }
-            }
+        protected override bool DefaultIsCyclical => true;
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public new static void Preserve()
+        {
         }
     }
 }

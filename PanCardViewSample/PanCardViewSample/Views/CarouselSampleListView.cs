@@ -4,6 +4,8 @@ using PanCardViewSample.ViewModels;
 using PanCardView;
 using System.Collections.Generic;
 using PanCardView.Extensions;
+using CardCarouselView = PanCardView.CarouselView;
+
 namespace PanCardViewSample.Views
 {
 	public class CarouselSampleListView : ContentPage
@@ -12,8 +14,8 @@ namespace PanCardViewSample.Views
 		{
 			BindingContext = new CarouselSampleListViewModel();
 
-			var carousel = new CarouselView
-			{
+			var carousel = new CardCarouselView
+            {
 				ItemTemplate = new ListTemplateSelector()
 			};
 
@@ -37,7 +39,7 @@ namespace PanCardViewSample.Views
 		protected override DataTemplate OnSelectTemplate(object item, BindableObject container)
 		{
 			var carousel = container.AsCardsView();
-			return carousel.ItemsSource[0] == item 
+			return carousel[0] == item 
 				           ? RedTemplate 
 				           : GreenTemplate;
 		}

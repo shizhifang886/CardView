@@ -13,22 +13,27 @@ namespace PanCardViewSample.ViewModels
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		private int _currentIndex;
-		private int _ImageCount = 500;
+		private int _imageCount = 1078;
 
 		public CardsSampleViewModel()
 		{
 			Items = new ObservableCollection<object>
 			{
-				new { Source = CreateSource(), Ind = _ImageCount++, Color = Color.Red },
-				new { Source = CreateSource(), Ind = _ImageCount++, Color = Color.Green },
-				new { Source = CreateSource(), Ind = _ImageCount++, Color = Color.Gold },
-				new { Source = CreateSource(), Ind = _ImageCount++, Color = Color.Silver },
-				new { Source = CreateSource(), Ind = _ImageCount++, Color = Color.Blue }
+				new { Source = CreateSource(), Ind = _imageCount++, Color = Color.Red, Title = "First" },
+				new { Source = CreateSource(), Ind = _imageCount++, Color = Color.Green, Title = "Second" },
+				new { Source = CreateSource(), Ind = _imageCount++, Color = Color.Gold, Title = "Long Title" },
+				new { Source = CreateSource(), Ind = _imageCount++, Color = Color.Silver, Title = "4" },
+				new { Source = CreateSource(), Ind = _imageCount++, Color = Color.Blue, Title = "5th" }
 			};
 
 			PanPositionChangedCommand = new Command(v =>
 			{
-                var index = CurrentIndex + ((bool)v ? 1 : -1);
+                if(IsAutoAnimationRunning || IsUserInteractionRunning)
+                {
+                    return;
+                }
+
+                var index = CurrentIndex + (bool.Parse(v.ToString()) ? 1 : -1);
                 if (index < 0 || index >= Items.Count)
                 {
                     return;
@@ -42,15 +47,22 @@ namespace PanCardViewSample.ViewModels
 				{ 
 					return;
 				}
-				Items.RemoveAt(CurrentIndex.ToCyclingIndex(Items.Count));
+				Items.RemoveAt(CurrentIndex.ToCyclicalIndex(Items.Count));
 			});
+
+            GoToLastCommand = new Command(() =>
+            {
+                CurrentIndex = Items.Count - 1;
+            });
 		}
 
 		public ICommand PanPositionChangedCommand { get; }
 
 		public ICommand RemoveCurrentItemCommand { get; }
 
-		public int CurrentIndex
+        public ICommand GoToLastCommand { get; }
+
+        public int CurrentIndex
 		{
 			get => _currentIndex;
 			set
@@ -60,11 +72,15 @@ namespace PanCardViewSample.ViewModels
 			}
 		}
 
-		public ObservableCollection<object> Items { get; }
+        public bool IsAutoAnimationRunning { get; set; }
+
+        public bool IsUserInteractionRunning { get; set; }
+
+        public ObservableCollection<object> Items { get; }
 
 		private string CreateSource()
 		{
-			var source = $"https://picsum.photos/500/500?image={_ImageCount}";
+			var source = $"https://picsum.photos/500/500?image={_imageCount}";
 			return source;
 		}
 	}

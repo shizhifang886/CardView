@@ -4,10 +4,11 @@ using System.Threading;
 using PanCardView.Extensions;
 using PanCardView.Utility;
 using System.Threading.Tasks;
+using System.ComponentModel;
 
 namespace PanCardView.Controls
 {
-    public class ArrowControl : CircleFrame
+    public class ArrowControl : ContentView
     {
         public static readonly BindableProperty SelectedIndexProperty = BindableProperty.Create(nameof(SelectedIndex), typeof(int), typeof(ArrowControl), 0, BindingMode.TwoWay, propertyChanged: (bindable, oldValue, newValue) =>
         {
@@ -19,7 +20,7 @@ namespace PanCardView.Controls
             bindable.AsArrowControl().ResetVisibility();
         });
 
-        public static readonly BindableProperty IsCyclicalProperty = BindableProperty.Create(nameof(IsCyclical), typeof(bool), typeof(CardsView), false, propertyChanged: (bindable, oldValue, newValue) =>
+        public static readonly BindableProperty IsCyclicalProperty = BindableProperty.Create(nameof(IsCyclical), typeof(bool), typeof(ArrowControl), false, propertyChanged: (bindable, oldValue, newValue) =>
         {
             bindable.AsArrowControl().ResetVisibility();
         });
@@ -39,11 +40,18 @@ namespace PanCardView.Controls
             bindable.AsArrowControl().OnIsRightToLeftFlowDirectionEnabledChnaged();
         });
 
+        public static readonly BindableProperty ImageSourceProperty = BindableProperty.Create(nameof(ImageSource), typeof(ImageSource), typeof(ArrowControl), defaultValueCreator: b => b.AsArrowControl().DefaultImageSource, propertyChanged: (bindable, oldValue, newValue) =>
+        {
+            bindable.AsArrowControl().OnImageSourceChanged();
+        });
+
         public static readonly BindableProperty UseParentAsBindingContextProperty = BindableProperty.Create(nameof(UseParentAsBindingContext), typeof(bool), typeof(ArrowControl), true);
 
         public static readonly BindableProperty ToFadeDurationProperty = BindableProperty.Create(nameof(ToFadeDuration), typeof(int), typeof(ArrowControl), 0);
 
         public static readonly BindableProperty IsRightProperty = BindableProperty.Create(nameof(IsRight), typeof(bool), typeof(ArrowControl), true);
+
+        protected internal static readonly BindableProperty ShouldAutoNavigateToNextProperty = BindableProperty.Create(nameof(ShouldAutoNavigateToNext), typeof(bool?), typeof(CardsView), null, BindingMode.OneWayToSource);
 
         private CancellationTokenSource _fadeAnimationTokenSource;
 
@@ -89,6 +97,12 @@ namespace PanCardView.Controls
             set => SetValue(IsRightToLeftFlowDirectionEnabledProperty, value);
         }
 
+        public ImageSource ImageSource
+        {
+            get => (ImageSource)GetValue(ImageSourceProperty);
+            set => SetValue(ImageSourceProperty, value);
+        }
+
         public int ToFadeDuration
         {
             get => (int)GetValue(ToFadeDurationProperty);
@@ -101,11 +115,28 @@ namespace PanCardView.Controls
             set => SetValue(IsRightProperty, value);
         }
 
+        internal bool? ShouldAutoNavigateToNext
+        {
+            get => GetValue(ShouldAutoNavigateToNextProperty) as bool?;
+            set => SetValue(ShouldAutoNavigateToNextProperty, value);
+        }
+
+        protected Image ContentImage { get; }
+
         public ArrowControl()
         {
-            OutlineColor = Color.White.MultiplyAlpha(.7);
-            BackgroundColor = Color.DarkGray.MultiplyAlpha(.7);
-            Size = 40;
+            Content = ContentImage = new Image
+            {
+                Aspect = Aspect.AspectFill,
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                InputTransparent = true,
+                Source = ImageSource
+            };
+
+            WidthRequest = 40;
+            HeightRequest = 40;
+
             Margin = new Thickness(20, 10);
             AbsoluteLayout.SetLayoutFlags(this, AbsoluteLayoutFlags.PositionProportional);
 
@@ -115,6 +146,7 @@ namespace PanCardView.Controls
             this.SetBinding(IsUserInteractionRunningProperty, nameof(CardsView.IsUserInteractionRunning));
             this.SetBinding(IsAutoInteractionRunningProperty, nameof(CardsView.IsAutoInteractionRunning));
             this.SetBinding(IsRightToLeftFlowDirectionEnabledProperty, nameof(CardsView.IsRightToLeftFlowDirectionEnabled));
+            this.SetBinding(ShouldAutoNavigateToNextProperty, nameof(CardsView.ShouldAutoNavigateToNext));
 
             Behaviors.Add(new ProtectedControlBehavior());
 
@@ -124,10 +156,17 @@ namespace PanCardView.Controls
             });
         }
 
+        protected virtual ImageSource DefaultImageSource => null;
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static void Preserve()
+        {
+        }
+
         protected override void OnParentSet()
         {
             base.OnParentSet();
-            if (UseParentAsBindingContext)
+            if (UseParentAsBindingContext && Parent is CardsView)
             {
                 BindingContext = Parent;
             }
@@ -139,16 +178,10 @@ namespace PanCardView.Controls
 
             var isAvailable = CheckAvailability();
 
+            IsEnabled = isAvailable;
+
             if (ToFadeDuration <= 0 && isAvailable)
             {
-                IsEnabled = isAvailable;
-                IsVisible = true;
-                return;
-            }
-
-            if (isAvailable && (IsUserInteractionRunning || IsAutoInteractionRunning))
-            {
-                IsEnabled = isAvailable;
                 IsVisible = true;
 
                 await new AnimationWrapper(v => Opacity = v, Opacity, 1)
@@ -156,7 +189,15 @@ namespace PanCardView.Controls
                 return;
             }
 
-            IsEnabled = isAvailable;
+            if (isAvailable && (IsUserInteractionRunning || IsAutoInteractionRunning))
+            {
+                IsVisible = true;
+
+                await new AnimationWrapper(v => Opacity = v, Opacity, 1)
+                    .Commit(this, nameof(ResetVisibility), 16, appearingTime ?? 330, appearingEasing ?? Easing.CubicInOut);
+                return;
+            }
+
             _fadeAnimationTokenSource = new CancellationTokenSource();
             var token = _fadeAnimationTokenSource.Token;
 
@@ -182,13 +223,15 @@ namespace PanCardView.Controls
             ResetVisibility();
         }
 
+        protected virtual void OnImageSourceChanged() => ContentImage.Source = ImageSource;
+
         protected virtual void OnTapped()
         {
-            if (IsUserInteractionRunning)
+            if (IsUserInteractionRunning || IsAutoInteractionRunning)
             {
                 return;
             }
-            SelectedIndex = (SelectedIndex + (IsRight ? 1 : -1)).ToCyclingIndex(ItemsCount);
+            SetSelectedWithShouldAutoNavigateToNext();
         }
 
         private bool CheckAvailability()
@@ -203,7 +246,7 @@ namespace PanCardView.Controls
                 return true;
             }
 
-            var cyclingIndex = SelectedIndex.ToCyclingIndex(ItemsCount);
+            var cyclingIndex = SelectedIndex.ToCyclicalIndex(ItemsCount);
 
             if (cyclingIndex == (IsRight ? ItemsCount - 1 : 0))
             {
@@ -211,6 +254,19 @@ namespace PanCardView.Controls
             }
 
             return true;
+        }
+
+        private void SetSelectedWithShouldAutoNavigateToNext()
+        {
+            try
+            {
+                ShouldAutoNavigateToNext = IsRight;
+                SelectedIndex = (SelectedIndex + (IsRight ? 1 : -1)).ToCyclicalIndex(ItemsCount);
+            }
+            finally
+            {
+                ShouldAutoNavigateToNext = null;
+            }
         }
     }
 }

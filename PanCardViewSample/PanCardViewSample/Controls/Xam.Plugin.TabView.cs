@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -8,6 +8,7 @@ using System.Text;
 using PanCardView;
 using Xamarin.Forms;
 using PanCardView.EventArgs;
+using CardCarouselView = PanCardView.CarouselView;
 
 namespace PanCardViewSample.Controls
 {
@@ -31,7 +32,8 @@ namespace PanCardViewSample.Controls
 	{
 		private StackLayout _mainContainerSL;
 		private Grid _headerContainerGrid;
-		private CarouselView _carouselView;
+		private ScrollView _horizontalScroll;
+		private CardCarouselView _carouselView;
 		private int _position = 0;
 
 		public ObservableCollection<TabItem> ItemSource { get; set; }
@@ -142,7 +144,18 @@ namespace PanCardViewSample.Controls
 					ColumnSpacing = 0
 				};
 
-				_carouselView = new CarouselView
+                _horizontalScroll = new ScrollView
+                {
+                    HorizontalOptions = LayoutOptions.FillAndExpand,
+                    VerticalOptions = LayoutOptions.Fill,
+                    BackgroundColor = Color.Transparent,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Never,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Never,
+                    Orientation = ScrollOrientation.Horizontal,
+                    Content = _headerContainerGrid
+                };
+
+				_carouselView = new CardCarouselView
 				{
 					HorizontalOptions = LayoutOptions.FillAndExpand,
 					VerticalOptions = LayoutOptions.FillAndExpand,
@@ -158,7 +171,7 @@ namespace PanCardViewSample.Controls
 				{
 					HorizontalOptions = LayoutOptions.FillAndExpand,
 					VerticalOptions = LayoutOptions.FillAndExpand,
-					Children = { _headerContainerGrid, _carouselView },
+					Children = { _horizontalScroll, _carouselView },
 					Spacing = 0
 				};
 

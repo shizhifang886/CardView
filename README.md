@@ -1,33 +1,66 @@
-# CardsView and CarouselView controls for Xamarin Forms (based on Xamarin Forms AbsoluteLayout)
-![Logo](https://raw.githubusercontent.com/AndreiMisiukevich/CardView/master/images/Cardsview-logotype-main.png)
+<html>
+  <p align="center">
+    <img src="https://raw.githubusercontent.com/AndreiMisiukevich/CardView/master/images/Cardsview-logotype-main.png" width="400">
+  </p>
+</html>
+
+## GIF
+<html>
+  <table style="width:100%">
+    <tr>
+      <th>CardsView</th>
+      <th>CarouselView</th> 
+      <th>CoverFlowView</th>
+      <th>CubeView</th>
+    </tr>
+    <tr>
+      <td><img src="https://media.giphy.com/media/3oFzlV5tQhF1udDxIY/giphy.gif"></td>
+      <td><img src="https://media.giphy.com/media/du0akXCuO8BTHzBuat/giphy.gif"></td>
+      <td><img src="https://media.giphy.com/media/1dH0dPqdPHwkDadmAx/giphy.gif"></td>
+      <td><img src="https://media.giphy.com/media/SXmXvjNJQMCcWMrvPj/giphy.gif"></td>
+    </tr>
+  </table>
+</html>
+
+<html>
+  <table style="width:100%">
+    <tr>
+      <th>ScaleFactor & OpacityFactor</th>
+      <th>TabsControl</th>
+    </tr>
+    <tr>
+      <td><img src="https://media.giphy.com/media/S9EVF6Xzq6K488rr5B/giphy.gif"></td>
+      <td><img src="https://media.giphy.com/media/JNxG5fFS1pa886U9N0/giphy.gif"></td>
+    </tr>
+  </table>
+</html>
+
+* CoverFlowView sample: https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardViewSample/PanCardViewSample/Views/CoverFlowSampleXamlView.xaml
+* CarouselView sample:
+https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardViewSample/PanCardViewSample/Views/CarouselSampleXamlView.xaml
+* CubeView sample:
+https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardViewSample/PanCardViewSample/Views/CubeSampleXamlView.xaml
+* CardsView sample:
+https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardViewSample/PanCardViewSample/Views/CardsSampleView.cs
+
 
 ## Setup
 * Available on NuGet: [CardsView](http://www.nuget.org/packages/CardsView) [![NuGet](https://img.shields.io/nuget/v/CardsView.svg?label=NuGet)](https://www.nuget.org/packages/CardsView)
-* Add nuget package to your Xamarin.Forms .netStandard/PCL project and to your platform-specific projects
-* Just in case add **CardsViewRenderer.Preserve()** in **iOS** AppDelegate in **FinishedLaunching**
+* Add nuget package to your Xamarin.Forms .NETSTANDARD/PCL project and to your platform-specific projects
+* Just in case add (**AFTER** ```Forms.Init(...)```):
+  - **CardsViewRenderer.Preserve()** for **iOS** AppDelegate in **FinishedLaunching**
+  - **CardsViewRenderer.Preserve()** for **Android** MainActivity in **OnCreate**
 
 |Platform|Version|
-| ------------------- | ------------------- |
-|Xamarin.iOS|8.0+|
-|Xamarin.Android|15+|
-|Windows 10 UWP|10.0.10240+|
-
-## CardsView
-This plugin provides opportunity to create swipeable CardsView in Xamarin.Forms applications like Tinder app has.
-
-![Sample GIF](https://media.giphy.com/media/3oFzlV5tQhF1udDxIY/giphy.gif)
-
-## CarouselView
-You are able to setup CarouselView control, that is based on CardsView
-
-![Sample GIF](https://media.giphy.com/media/du0akXCuO8BTHzBuat/giphy.gif)
-
-## Custom Animations
-You are able to create custom animations, just implement ICardProcessor or extend created processors (change animation speed or type)
-https://github.com/AndreiMisiukevich/CardView/tree/master/PanCardView/Processors
-
-## Samples
-The sample you can find here https://github.com/AndreiMisiukevich/CardView/tree/master/PanCardViewSample
+| ------------------- | :-----------: |
+|Xamarin.iOS|iOS 7+|
+|Xamarin.Mac|All|
+|Xamarin.Android|API 15+|
+|Windows 10 UWP|10+|
+|Tizen|4.0+|
+|Gtk|All|
+|WPF|.NET 4.5|
+|.NET Standard|2.0+|
 
 **C#:**
 
@@ -83,6 +116,29 @@ carouselView.Children.Add(new IndicatorsControl());
 Also you are able to manage **IndicatorsControl** appearing/disappearing. For example if user doesn't select new page during N miliseconds, the indicators will disappear. Just set ToFadeDuration = 2000 (2 seconds delay before disappearing)
 Yoy manage **LeftArrowControl** and **RightArrowControl** as well as IndicatorsControl (ToFadeDuration is presented too).
 
+Indicators styling:
+``` xml
+ <ContentPage.Resources>
+    <ResourceDictionary>
+        <Style x:Key="ActiveIndicator" TargetType="Frame">
+            <Setter Property="BackgroundColor" Value="Red" />
+        </Style>
+        <Style x:Key="InactiveIndicator" TargetType="Frame">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="OutlineColor" Value="Red" />
+        </Style>
+    </ResourceDictionary>
+</ContentPage.Resources>
+
+... 
+
+<controls:IndicatorsControl ToFadeDuration="1500"
+          SelectedIndicatorStyle="{StaticResource ActiveIndicator}"
+          UnselectedIndicatorStyle="{StaticResource InactiveIndicator}"/>
+```
+
+
+
 if you want to add items directly through xaml
 
 ``` xml
@@ -103,12 +159,54 @@ if you want to add items directly through xaml
 ...
 ```
 
+if you want to achieve scale or opacity changing effects for side views (**ScaleFactor** & **OpacityFactor**), you should mange corresponding properties in processors and pass them to view constructor via **x:Arguments**:
+
+``` xml
+<ContentPage 
+    ...
+    xmlns:cards="clr-namespace:PanCardView;assembly=PanCardView"
+    xmlns:proc="clr-namespace:PanCardView.Processors;assembly=PanCardView">
+
+...
+
+<cards:CoverFlowView 
+      PositionShiftValue="145"
+      ItemsSource="{Binding Items}">
+
+      <x:Arguments>
+          <proc:BaseCoverFlowFrontViewProcessor ScaleFactor="0.75" OpacityFactor="0.25" />
+          <proc:BaseCoverFlowBackViewProcessor  ScaleFactor="0.75" OpacityFactor="0.25" />
+      </x:Arguments>
+
+  <cards:CoverFlowView.ItemTemplate>
+      <DataTemplate>
+         <Frame
+             Margin="80">
+               
+              ....
+
+          </Frame>
+      </DataTemplate>
+  </cards:CoverFlowView.ItemTemplate>
+
+</cards:CoverFlowView>
+
+...
+```
 
 -> If you want to customize indicators, you need set *SelectedIndicatorStyle* and/or *UnselectedIndicatorStyle*, or you are able to extend this class and override several methods.
 Also you can customize position of indicators (You need to set Rotation / AbsoluteLayout Flags and Bounds etc.)
 
 This class is describing default indicators styles (each default indicator item is Frame)
 https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardView/Styles/DefaultIndicatorItemStyles.cs
+
+
+**MORE SAMPLES** you can find here https://github.com/AndreiMisiukevich/CardView/tree/master/PanCardViewSample
+
+## Custom Animations
+You are able to create custom animations, just implement *ICardProcessor* & *ICardBackViewProcessor* or extend existing processors (change animation speed or type etc.)
+https://github.com/AndreiMisiukevich/CardView/tree/master/PanCardView/Processors
+
 
 ## Workarounds
 
@@ -122,11 +220,64 @@ Check these classes (I implemented it for ParentScrollView. You can use it as ex
 https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardView/Controls/ParentScrollView.cs
 https://github.com/AndreiMisiukevich/CardView/blob/master/PanCardView.Droid/ParentScrollViewRenderer.cs
 
--> If you don't want to handle vertical swipes or they interrupt your scrolling, you can set **VerticalSwipeThresholdDistance = "2000"** This property responds for vertical swipe detecting threshold
+-> If you want to put your cardsView/carouselView INTO a ```TabbedPage``` on **Android**:
+1) Add an event handler for the ``` UserInteraction ``` event
+2) On ``` UserInteractionStatus.Started ```: Disable TabbedPage Swipe Scrolling
+3) On ``` UserInteractionStatus.Ending/Ended ```: Enabled TabbedPage Swipe Scrolling
+
+Example:
+1) TabbedPage:
+``` csharp
+public partial class TabbedHomePage : Xamarin.Forms.TabbedPage
+{
+    public static TabbedHomePage Current { get; private set; }
+
+    public TabbedHomePage()
+    {
+        Current = this;
+    }
+
+    public static void DisableSwipe()
+    {
+        Current.On<Android>().DisableSwipePaging();
+    }
+    
+    public static void EnableSwipe()
+    {
+        Current.On<Android>().EnableSwipePaging();
+    }
+}
+```
+
+2) Page with CardsView/CarouselView:
+``` csharp
+public PageWithCarouselView()
+{
+    InitializeComponent();
+
+    carouselView.UserInteracted += CarouselView_UserInteracted;
+}
+
+private void CarouselView_UserInteracted(PanCardView.CardsView view, PanCardView.EventArgs.UserInteractedEventArgs args)
+{
+    if (args.Status == PanCardView.Enums.UserInteractionStatus.Started)
+    {
+        TabbedHomePage.DisableSwipe();
+    }
+    if (args.Status == PanCardView.Enums.UserInteractionStatus.Ended)
+    {
+        TabbedHomePage.EnableSwipe();
+    }
+}
+```
+
+-> If you don't want to handle vertical swipes or they interrupt your scrolling, you can set **IsVerticalSwipeEnabled = "false"**
 
 -> If all these tricks didn't help you, you may use **IsPanInteractionEnabled = false** This trick disables pan interaction, but preserve ability to swipe cards.
 
--> If you get **crashes** during ItemsSource update, try to add/set items in Main Thread (Device.BeginInvokeInMainThread)
+-> If you get **crashes** during ItemsSource update, try to add/set items in Main Thread (**Device.BeginInvokeOnMainThread**)
+
+-> **GTK** use click / double click for forward/back navigation.
 
 Check source code for more info, or 🇧🇾 ***just ask me =)*** 🇧🇾
 

@@ -7,7 +7,12 @@ namespace PanCardViewSample
 	{
 		public App()
 		{
-			MainPage = new NavigationPage(new StartPage());
+            if (Device.RuntimePlatform == Device.GTK)
+            {
+                MainPage = new Views.Gtk.CoverFlowSampleXamlView();
+                return;
+            }
+            MainPage = new NavigationPage(new StartPage());
 		}
 	}
 
@@ -24,7 +29,7 @@ namespace PanCardViewSample
 			var toCoverFlowBtn = new Button { Text = "CoverFlowView" };
             toCoverFlowBtn.Clicked += (sender, e) =>
 			{
-                this.Navigation.PushAsync(new CoverFlowSampleView(Width));
+                this.Navigation.PushAsync(new CoverFlowSampleXamlView());
 			};
 
 			var toCarouselScrollBtn = new Button { Text = "CarouselView scroll" };
@@ -63,7 +68,19 @@ namespace PanCardViewSample
 				this.Navigation.PushAsync(new CarouselSampleEmbeddedView());
 			};
 
-			Content = new ScrollView
+            var toPanBtn = new Button { Text = "Panorama Xaml" };
+            toPanBtn.Clicked += (sender, e) =>
+            {
+                this.Navigation.PushAsync(new PanoramaSampleView());
+            };
+
+            var toCubeBtn = new Button { Text = "CubeView Xaml" };
+            toCubeBtn.Clicked += (sender, e) =>
+            {
+                this.Navigation.PushAsync(new CubeSampleXamlView());
+            };
+
+            Content = new ScrollView
 			{
 				Content = new StackLayout
 				{
@@ -75,10 +92,12 @@ namespace PanCardViewSample
 						toCarouselNoTemplateBtn,
 						toCarouselXamlBtn,
 						toCarouselListBtn,
-						toCarouselEmbBtn
-					}
+						toCarouselEmbBtn,
+                        toPanBtn,
+                        toCubeBtn
+                    }
 				}
 			};
-		}
+        }
 	}
 }

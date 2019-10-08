@@ -1,5 +1,6 @@
-﻿using PanCardView.Extensions;
+﻿using System.ComponentModel;
 using Xamarin.Forms;
+using static PanCardView.Resources.ResourcesInfo;
 
 namespace PanCardView.Controls
 {
@@ -9,17 +10,13 @@ namespace PanCardView.Controls
         {
             IsRight = false;
             AbsoluteLayout.SetLayoutBounds(this, new Rectangle(0, .5, -1, -1));
-            Content = new Label
-            {
-                TextColor = Color.White.MultiplyAlpha(.7),
-                VerticalTextAlignment = TextAlignment.Center,
-                HorizontalTextAlignment = TextAlignment.Center,
-                FontAttributes = FontAttributes.Bold,
-                Margin = new Thickness(0, 0, 4, 0),
-                FontSize = 20,
-                Text = "➤",
-                Rotation = 180
-            };
+        }
+
+        protected override ImageSource DefaultImageSource => WhiteLeftArrowImageSource;
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public new static void Preserve()
+        {
         }
     }
 }
