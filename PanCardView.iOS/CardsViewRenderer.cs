@@ -6,6 +6,7 @@ using Xamarin.Forms;
 using Xamarin.Forms.Platform.iOS;
 using PanCardView.Enums;
 using System.ComponentModel;
+using static System.Math;
 
 [assembly: ExportRenderer(typeof(CardsView), typeof(CardsViewRenderer))]
 namespace PanCardView.iOS
@@ -13,13 +14,13 @@ namespace PanCardView.iOS
     [Preserve(AllMembers = true)]
     public class CardsViewRenderer : VisualElementRenderer<CardsView>
     {
-        private readonly UISwipeGestureRecognizer _leftSwipeGesture;
-        private readonly UISwipeGestureRecognizer _rightSwipeGesture;
-        private readonly UISwipeGestureRecognizer _upSwipeGesture;
-        private readonly UISwipeGestureRecognizer _downSwipeGesture;
+        private UISwipeGestureRecognizer _leftSwipeGesture;
+        private UISwipeGestureRecognizer _rightSwipeGesture;
+        private UISwipeGestureRecognizer _upSwipeGesture;
+        private UISwipeGestureRecognizer _downSwipeGesture;
 
         public static void Preserve()
-        => Preserver.Preserve();
+            => Preserver.Preserve();
 
         public CardsViewRenderer()
         {
@@ -41,6 +42,17 @@ namespace PanCardView.iOS
             };
         }
 
+        public override void AddGestureRecognizer(UIGestureRecognizer gestureRecognizer)
+        {
+            base.AddGestureRecognizer(gestureRecognizer);
+
+            if (gestureRecognizer is UIPanGestureRecognizer panGestureRecognizer)
+            {
+                gestureRecognizer.ShouldBeRequiredToFailBy = ShouldBeRequiredToFailBy;
+            }
+            gestureRecognizer.ShouldRecognizeSimultaneously = ShouldRecognizeSimultaneously;
+        }
+
         protected override void OnElementChanged(ElementChangedEventArgs<CardsView> e)
         {
             base.OnElementChanged(e);
@@ -53,7 +65,7 @@ namespace PanCardView.iOS
         protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             base.OnElementPropertyChanged(sender, e);
-            if(e.PropertyName == CardsView.IsVerticalSwipeEnabledProperty.PropertyName)
+            if (e.PropertyName == CardsView.IsVerticalSwipeEnabledProperty.PropertyName)
             {
                 SetSwipeGestures();
                 return;
@@ -62,12 +74,16 @@ namespace PanCardView.iOS
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
+            if (disposing)
             {
                 _leftSwipeGesture?.Dispose();
                 _rightSwipeGesture?.Dispose();
                 _upSwipeGesture?.Dispose();
                 _downSwipeGesture?.Dispose();
+                _leftSwipeGesture = null;
+                _rightSwipeGesture = null;
+                _upSwipeGesture = null;
+                _downSwipeGesture = null;
             }
             base.Dispose(disposing);
         }
@@ -75,7 +91,7 @@ namespace PanCardView.iOS
         protected virtual void ResetSwipeGestureRecognizer(UISwipeGestureRecognizer swipeGestureRecognizer, bool isForceRemove = false)
         {
             RemoveGestureRecognizer(swipeGestureRecognizer);
-            if(isForceRemove)
+            if (isForceRemove)
             {
                 return;
             }
@@ -104,5 +120,14 @@ namespace PanCardView.iOS
 
             Element?.OnSwiped(swipeDirection);
         }
+
+        private bool ShouldBeRequiredToFailBy(UIGestureRecognizer gestureRecognizer, UIGestureRecognizer otherGestureRecognizer)
+            => gestureRecognizer is UIPanGestureRecognizer && IsPanGestureHandled() && otherGestureRecognizer.View != this;
+
+        private bool ShouldRecognizeSimultaneously(UIGestureRecognizer gestureRecognizer, UIGestureRecognizer otherGestureRecognizer)
+            => !(otherGestureRecognizer is UIPanGestureRecognizer) && !IsPanGestureHandled();
+
+        private bool IsPanGestureHandled()
+            => Abs(Element?.CurrentDiff ?? 0) >= Element?.MoveThresholdDistance;
     }
 }

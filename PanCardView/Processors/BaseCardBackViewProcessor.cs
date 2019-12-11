@@ -6,6 +6,7 @@ using Xamarin.Forms;
 using static PanCardView.Processors.Constants;
 using static System.Math;
 using PanCardView.Utility;
+using PanCardView.Extensions;
 
 namespace PanCardView.Processors
 {
@@ -47,7 +48,7 @@ namespace PanCardView.Processors
             if (view != null)
             {
                 view.IsVisible = false;
-                view.TranslationX = cardsView.Width;
+                view.TranslationX = cardsView.GetSize();
             }
         }
 
@@ -69,7 +70,7 @@ namespace PanCardView.Processors
                 return;
             }
 
-            var calcScale = InitialScale + Abs((xPos / cardsView.MoveDistance) * (1 - InitialScale));
+            var calcScale = InitialScale + Abs((xPos / cardsView.RealMoveDistance) * (1 - InitialScale));
             view.Scale = Min(calcScale, 1);
         }
 
@@ -81,7 +82,7 @@ namespace PanCardView.Processors
                 return;
             }
 
-            await new AnimationWrapper(v => HandleAutoAnimatingPosChanged(view, cardsView, v, animationDirection), 0, cardsView.MoveDistance)
+            await new AnimationWrapper(v => HandleAutoAnimatingPosChanged(view, cardsView, v, animationDirection), 0, cardsView.RealMoveDistance)
                 .Commit(view, nameof(HandleAutoNavigate), 16, AutoNavigateAnimationLength, AutoNavigateEasing);
             await HandlePanApply(views, cardsView, animationDirection, inactiveViews);
         }
@@ -122,7 +123,7 @@ namespace PanCardView.Processors
 
             view.TranslationX = xPos;
             view.TranslationY = Abs(xPos) / 10;
-            view.Rotation = 0.3 * Min(xPos / cardsView.Width, 1) * Rad;
+            view.Rotation = 0.3 * Min(xPos / cardsView.GetSize(), 1) * Rad;
         }
     }
 }

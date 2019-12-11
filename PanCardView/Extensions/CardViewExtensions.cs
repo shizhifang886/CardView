@@ -7,6 +7,9 @@ namespace PanCardView.Extensions
 {
     public static class CardViewExtensions
     {
+        public static double GetSize(this CardsView cardsView, View card = null)
+        => cardsView.IsHorizontalOrientation ? (card ?? cardsView).Width : (card ?? cardsView).Height;
+
         public static CardsView AsCardsView(this BindableObject bindable)
         => bindable as CardsView;
 
@@ -45,33 +48,17 @@ namespace PanCardView.Extensions
             return template;
         }
 
-        [Obsolete]
-        public static int ToCyclingIndex(this int index, int itemsCount)
-        {
-            return ToCyclicalIndex(index, itemsCount);
-        }
-
         public static int ToCyclicalIndex(this int index, int itemsCount)
         {
             if (itemsCount <= 0)
             {
                 return -1;
             }
-            if (index < 0)
-            {
-                while (index < 0)
-                {
-                    index += itemsCount;
-                }
-            }
-            else
-            {
-                while (index >= itemsCount)
-                {
-                    index -= itemsCount;
-                }
-            }
-            return index;
+
+            var reminder = index % itemsCount;
+            return reminder >= 0
+                ? reminder
+                : reminder + itemsCount;
         }
 
         public static int FindIndex(this IEnumerable collection, object value)
